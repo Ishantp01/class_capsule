@@ -6,6 +6,7 @@ import { connectToDB } from '@/lib/mongodb';
 import Note from '@/models/Note';
 import User from '@/models/User';
 
+ connectToDB();
 export const config = {
   api: {
     bodyParser: false,
@@ -40,19 +41,16 @@ function runMiddleware(req: any, res: any, fn: Function) {
 }
 
 // Main handler
+// ...existing code...
+
 export async function POST(req: any, res: any) {
   try {
-    // Create readable/writable request/response
-    const reqBody: any = {};
-    const reqRes = { req, res }; // wrapper
+    await runMiddleware(req, res, upload.array('file'));
 
-    // Run multer
-    await runMiddleware(req, res, upload.single('file'));
-
-    const file = req.file;
-    if (!file) {
-        console.log("No file uploaded");
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    const files = req.files;
+    if (!files || files.length === 0) {
+      console.log("No files uploaded");
+      return NextResponse.json({ error: 'No files uploaded' }, { status: 400 });
     }
 
     const {
@@ -80,8 +78,8 @@ export async function POST(req: any, res: any) {
       });
     }
 
-    // Create public URL
-    const fileUrl = `/uploads/${file.filename}`;
+    // Create public URLs for all files
+    const fileUrls = files.map((file: any) => `/uploads/${file.filename}`);
 
     // Save the note
     const note = await Note.create({
@@ -89,7 +87,7 @@ export async function POST(req: any, res: any) {
       topic,
       classDate: new Date(classDate),
       description,
-      fileUrl,
+      fileUrl: fileUrls, // store array
       tags: tags?.split(',').map((tag: string) => tag.trim()),
       visibility,
       uploadedBy: user._id,
@@ -100,9 +98,11 @@ export async function POST(req: any, res: any) {
       { status: 200 }
     );
   } catch (error: any) {
-    // If file was uploaded but DB save fails, remove file
-    if (req?.file) {
-      fs.unlinkSync(path.join(uploadDir, req.file.filename));
+    // If file was uploaded but DB save fails, remove files
+    if (req?.files && Array.isArray(req.files)) {
+      req.files.forEach((file: any) => {
+        fs.unlinkSync(path.join(uploadDir, file.filename));
+      });
     }
     return NextResponse.json(
       { error: error.message || 'Something went wrong' },
@@ -110,3 +110,4 @@ export async function POST(req: any, res: any) {
     );
   }
 }
+// ...existing code...

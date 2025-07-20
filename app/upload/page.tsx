@@ -81,7 +81,7 @@ export default function UploadPage() {
         body: form
       })
 
-      if (!res.ok) throw new Error("Failed to upload")
+      if (!res.ok) throw new Error("Failed to uploadH files")
 
       const result = await res.json()
       console.log("Upload successful:", result)

@@ -1,4 +1,6 @@
 // lib/mongodb.ts
+console.log("📦 mongodb.js loaded");
+
 import mongoose from 'mongoose';
 
 let isConnected = false;
