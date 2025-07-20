@@ -63,13 +63,38 @@ export default function UploadPage() {
 
     setIsProcessing(true)
 
-    // Mock processing delay
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    const form = new FormData()
+    uploadedFiles.forEach(file => {
+      form.append("file", file)
+    })
+    form.append("title", formData.subject)
+    form.append("classDate", formData.date)
+    form.append("topic", formData.topic)
+    form.append("description", formData.description)
+    form.append("tags", formData.tags)
+    form.append("visibility", formData.visibility)
+    form.append("uploadedBy", "64fe24e905f1e39bb61e7c20") // Replace with actual user ID in production
 
-    setSummary(
-      `🎉 Your notes on "${formData.topic}" have been processed and shared! Our AI found key concepts about ${formData.subject}. Your classmates will love this - you've earned 50 points! Keep the knowledge flowing! ✨`,
-    )
-    setIsProcessing(false)
+    try {
+      const res = await fetch("/api/notes/upload", {
+        method: "POST",
+        body: form
+      })
+
+      if (!res.ok) throw new Error("Failed to upload")
+
+      const result = await res.json()
+      console.log("Upload successful:", result)
+
+      setSummary(
+        `🎉 Your notes on "${formData.topic}" have been processed and shared! Our AI found key concepts about ${formData.subject}. Your classmates will love this - you've earned 50 points! Keep the knowledge flowing! ✨`
+      )
+    } catch (error) {
+  console.error("❌ Error during file upload:", error); // ADD THIS
+  return Response.json({ error: 'Something went wrong while uploading. Please try again.' }, { status: 500 });
+} finally {
+      setIsProcessing(false)
+    }
   }
 
   return (

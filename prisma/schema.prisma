@@ -1,0 +1,70 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Models for ClassCapsule ---
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique // For authentication
+  password     String      // Hashed password
+  fullName     String?
+  college      String?
+  course       String?
+  year         String?
+  notes        Note[]      // Relation to notes uploaded by this user
+  groups       GroupUser[] // Relation to groups this user is part of
+  createdGroups Group[]    @relation("UserCreatedGroups") // <--- ADD THIS LINE
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Note {
+  id          String    @id @default(uuid())
+  title       String    // e.g., Subject/Topic
+  classDate   DateTime  @db.Date // Store just the date
+  topic       String?   // e.g., Binary Trees
+  description String?
+  fileUrl     String?   // URL to the uploaded file (PDF/JPG/PNG)
+  tags        String[]  // Array of strings, e.g., ["important", "midterm"]
+  visibility  String    @default("public") // e.g., "public", "private"
+  summary     String?   @db.Text // Store the Gemini-generated summary
+  uploadedById String   // ID of the user who uploaded the note
+  uploadedBy  User      @relation(fields: [uploadedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Group {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  subject     String
+  maxMembers  Int
+  creatorId   String
+  creator     User        @relation("UserCreatedGroups", fields: [creatorId], references: [id]) // <--- ADD THE RELATION NAME HERE
+  members     GroupUser[] // Join table for many-to-many relationship with User
+  description String?
+  meetingInfo String?     // e.g., "Daily 7-9 PM, Library + Discord"
+  tags        String[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// Join table for User-Group many-to-many relationship
+model GroupUser {
+  id        String   @id @default(uuid())
+  userId    String
+  groupId   String
+  user      User     @relation(fields: [userId], references: [id])
+  group     Group    @relation(fields: [groupId], references: [id])
+  joinedAt  DateTime @default(now())
+
+  @@unique([userId, groupId]) // A user can only join a group once
+}
